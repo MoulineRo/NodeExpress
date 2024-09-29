@@ -1,6 +1,8 @@
 const express = require('express')
 const app = express()
+const customMiddleware = require('./customMiddelware');
 app.use(express.json());
+app.use(customMiddleware);
 
 const users = [
     {id: 1, name: "Andrii", mail: "sertam@gmail.com"},
