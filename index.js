@@ -1,49 +1,62 @@
 const express = require('express')
 const app = express()
+
+const mongoose = require('mongoose');
+const {Schema} = mongoose;
 const customMiddleware = require('./customMiddelware');
+
+require('dotenv').config();
 app.use(express.json());
 app.use(customMiddleware);
 
-const users = [
-    {id: 1, name: "Andrii", mail: "sertam@gmail.com"},
-    {id: 2, name: "Vladimir", mail: "qweee@gmail.com"},
-    {id: 3, name: "Alex", mail: "alam@gmail.com"},
-    {id: 4, name: "Alexandr", mail: "mpasr@gmail.com"},
-    {id: 5, name: "Rostislav", mail: "chasd@gmail.com"}
-]
+
+mongoose.connect(process.env.MONGODB_URI)
+    .then(() => console.log('Connected!'))
+    .catch(err => console.error('Connection error:', err));
+
+
+const userSchema = new Schema({
+    name: String,
+    mail: String
+})
+
+const User = mongoose.model('Users', userSchema);
 
 app.get('/', function (req, res) {
     res.send('Hello World')
 })
 
-app.get('/users', function (req, res) {
-    res.send(users)
+app.get('/users', async function (req, res) {
+    try {
+        const users = await User.find()
+        res.status(200).json(users);
+    } catch (error) {
+        res.status(500).send('Error fetching users');
+    }
 })
 
-app.post('/users', function (req, res) {
+app.post('/users', async function (req, res) {
     const usersList = req.body;
     if (usersList) {
-        usersList.id = users.length + 1
-        users.push(usersList)
-        res.send(usersList)
+        const newUsers = await User.create(usersList);
+        res.status(201).json(newUsers);
     }
 
 })
 
-app.get(`/users/:id`, function (req, res) {
+app.get(`/users/:id`, async function (req, res) {
     const id = req.params.id;
-    const foundUser = users.find(user => user.id === Number(id))
-    if (foundUser){
-        res.send(foundUser)
-    }
-    else {
-        res.send("User not found")
+    const foundUser = await User.findById(id)
+    if (foundUser) {
+        res.status(200).json(foundUser);
+    } else {
+        res.status(404).send("User not found")
     }
 
 })
 
 app.use((req, res, next) => {
-    res.status(404).send({ error: 'Endpoint not found' });
+    res.status(404).send({error: 'Endpoint not found'});
 });
 
 app.listen(3000)
